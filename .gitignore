@@ -1,0 +1,26 @@
+# Android Studio / IntelliJ
+*.iml
+.gradle
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+.externalNativeBuild
+.cxx
+
+# Configuración local (rutas de SDK, etc.)
+local.properties
+/local.properties
+
+# Carpetas de compilación y temporales
+/build
+/captures
+
+# Archivos de paquetes de aplicación generados
+*.apk
+*.aab
+*.dex
+*.class

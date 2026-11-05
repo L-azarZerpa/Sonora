@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootNotificationMedia"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="170dp"
+    android:background="@color/bg_dark"
+    android:gravity="center_vertical"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Fila Superior: Titulo y Artista a la izquierda, Boton de Play/Pausa a la derecha -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvNotificationTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvNotificationArtist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnNotificationPlayPause"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_art_circle"
+            android:backgroundTint="@color/primary"
+            android:contentDescription="Play o Pausa"
+            android:padding="12dp"
+            android:src="@drawable/ic_pause" />
+
+    </LinearLayout>
+
+    <!-- Fila Inferior: Botones a los extremos y barra en medio -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- Boton Anterior -->
+        <ImageView
+            android:id="@+id/btnNotificationPrev"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="Anterior"
+            android:padding="10dp"
+            android:src="@drawable/ic_skip_previous" />
+
+        <!-- Boton Retroceder 5s -->
+        <ImageView
+            android:id="@+id/btnNotificationRewind5"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="2dp"
+            android:contentDescription="Retroceder 5s"
+            android:padding="10dp"
+            android:src="@drawable/ic_fast_rewind" />
+
+        <!-- Centro: Barra de Progreso y Tiempos abajo -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <ProgressBar
+                android:id="@+id/pbNotificationProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="8dp"
+                android:minHeight="8dp"
+                android:maxHeight="8dp"
+                android:indeterminate="false"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/bg_progress_bar" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvNotificationCurrentTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:orientation="horizontal" />
+
+                <TextView
+                    android:id="@+id/tvNotificationTotalTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Boton Adelantar 5s -->
+        <ImageView
+            android:id="@+id/btnNotificationForward5"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="2dp"
+            android:contentDescription="Adelantar 5s"
+            android:padding="10dp"
+            android:src="@drawable/ic_fast_forward" />
+
+        <!-- Boton Siguiente -->
+        <ImageView
+            android:id="@+id/btnNotificationNext"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="Siguiente"
+            android:padding="10dp"
+            android:src="@drawable/ic_skip_next" />
+
+    </LinearLayout>
+
+</LinearLayout>

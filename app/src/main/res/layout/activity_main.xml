@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:orientation="vertical">
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Divisor sutil superior de la barra de navegación -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider_color" />
+
+    <!-- Barra de navegación inferior -->
+    <LinearLayout
+        android:id="@+id/bottomNavContainer"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/nav_bg"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <!-- Tab 0: Lista de canciones -->
+        <LinearLayout
+            android:id="@+id/tabNavList"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <!-- Raya superior indicadora del color rosa -->
+            <View
+                android:id="@+id/indicatorNavList"
+                android:layout_width="36dp"
+                android:layout_height="3dp"
+                android:background="@drawable/bg_nav_indicator"
+                android:visibility="visible" />
+
+            <ImageButton
+                android:id="@+id/btnNavList"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:clickable="false"
+                android:contentDescription="Lista de canciones"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_menu_lines" />
+
+        </LinearLayout>
+
+        <!-- Tab 1: Reproductor -->
+        <LinearLayout
+            android:id="@+id/tabNavPlayer"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <!-- Raya superior indicadora del color rosa -->
+            <View
+                android:id="@+id/indicatorNavPlayer"
+                android:layout_width="36dp"
+                android:layout_height="3dp"
+                android:background="@drawable/bg_nav_indicator"
+                android:visibility="invisible" />
+
+            <ImageButton
+                android:id="@+id/btnNavPlayer"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:clickable="false"
+                android:contentDescription="Reproductor"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_play" />
+
+        </LinearLayout>
+
+        <!-- Tab 2: Listas de reproducción -->
+        <LinearLayout
+            android:id="@+id/tabNavPlaylists"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <!-- Raya superior indicadora del color rosa -->
+            <View
+                android:id="@+id/indicatorNavPlaylists"
+                android:layout_width="36dp"
+                android:layout_height="3dp"
+                android:background="@drawable/bg_nav_indicator"
+                android:visibility="invisible" />
+
+            <ImageButton
+                android:id="@+id/btnNavPlaylists"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:clickable="false"
+                android:contentDescription="Listas de reproducción"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_playlist" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

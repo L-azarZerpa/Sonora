@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Paleta de colores unificada Sonora Theme -->
+    <color name="bg_dark">#0F0F12</color>
+    <color name="surface_dark">#181820</color>
+    <color name="surface_variant">#22222C</color>
+    <color name="nav_bg">#121218</color>
+    <color name="divider_color">#262632</color>
+
+    <!-- Color base primario (Rosa: RGB 247, 205, 218 -> #F7CDDA) -->
+    <color name="primary">#F7CDDA</color>
+    <color name="primary_variant">#E5ACC0</color>
+    <color name="primary_light">#FCE4EC</color>
+
+    <!-- Colores de texto e iconos -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#A0A0B0</color>
+    <color name="icon_inactive">#555566</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

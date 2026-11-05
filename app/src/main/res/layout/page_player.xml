@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Barra superior del reproductor: Volver a la lista -->
+    <RelativeLayout
+        android:id="@+id/rlPlayerHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageButton
+            android:id="@+id/btnBackToList"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentStart="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Volver a la lista"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/text_primary" />
+
+    </RelativeLayout>
+
+    <!-- Contenido centrado (Arte, Título, Artista) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <!-- Contenedor estilizado del arte de la canción -->
+        <FrameLayout
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:background="@drawable/bg_art_circle"
+            android:padding="32dp">
+
+            <ImageView
+                android:id="@+id/ivMusicArt"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Arte de la canción"
+                android:src="@drawable/ic_music_note"
+                app:tint="@color/primary" />
+        </FrameLayout>
+
+        <!-- Título de la canción -->
+        <TextView
+            android:id="@+id/tvPlayerTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:ellipsize="marquee"
+            android:gravity="center"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:singleLine="true"
+            android:text="Sin canción seleccionada"
+            android:textColor="@color/text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- Artista -->
+        <TextView
+            android:id="@+id/tvPlayerArtist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:singleLine="true"
+            android:text="Selecciona una pista en la lista"
+            android:textColor="@color/text_secondary"
+            android:textSize="15sp" />
+
+    </LinearLayout>
+
+    <!-- Opciones dinámicas: Repetir (Bucle/Siguiente) y Aleatorio (Lineal/Al azar) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <!-- Botón de Repetir -->
+        <ImageButton
+            android:id="@+id/btnRepeat"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="28dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Modo de repetición"
+            android:src="@drawable/ic_repeat"
+            app:tint="@color/icon_inactive" />
+
+        <!-- Botón de Aleatorio -->
+        <ImageButton
+            android:id="@+id/btnShuffle"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="28dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Modo de reproducción aleatoria"
+            android:src="@drawable/ic_shuffle"
+            app:tint="@color/icon_inactive" />
+
+    </LinearLayout>
+
+    <!-- Barra de progreso en blanco y tiempos de reproducción -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvCurrentTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <SeekBar
+            android:id="@+id/playerSeekBar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:progressBackgroundTint="@color/surface_variant"
+            android:progressTint="@color/white"
+            android:thumbTint="@color/white" />
+
+        <TextView
+            android:id="@+id/tvTotalTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+    </LinearLayout>
+
+    <!-- Fila de controles de reproducción -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <!-- Canción anterior -->
+        <ImageButton
+            android:id="@+id/btnPrevious"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Canción anterior"
+            android:src="@drawable/ic_skip_previous"
+            app:tint="@color/text_primary" />
+
+        <!-- Retroceder 5 segundos -->
+        <ImageButton
+            android:id="@+id/btnRewind5"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Retroceder 5 segundos"
+            android:src="@drawable/ic_fast_rewind"
+            app:tint="@color/text_primary" />
+
+        <!-- Play / Pausa en Blanco -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnPlayPause"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="14dp"
+            android:contentDescription="Reproducir o pausar"
+            app:backgroundTint="@color/white"
+            app:elevation="6dp"
+            app:fabSize="normal"
+            app:srcCompat="@drawable/ic_play"
+            app:tint="@color/bg_dark" />
+
+        <!-- Adelantar 5 segundos -->
+        <ImageButton
+            android:id="@+id/btnForward5"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Adelantar 5 segundos"
+            android:src="@drawable/ic_fast_forward"
+            app:tint="@color/text_primary" />
+
+        <!-- Siguiente canción -->
+        <ImageButton
+            android:id="@+id/btnNext"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Siguiente canción"
+            android:src="@drawable/ic_skip_next"
+            app:tint="@color/text_primary" />
+
+    </LinearLayout>
+
+</LinearLayout>

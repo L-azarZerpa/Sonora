@@ -2,49 +2,28 @@ package com.example.sonora
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.ContentUris
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.MediaPlayer
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
-import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
-import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ListView
-import android.widget.ProgressBar
-import android.widget.RemoteViews
-import android.widget.SeekBar
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.Locale
 import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
@@ -56,8 +35,6 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_LAST_SONG_POS = "LAST_SONG_POS"
         private const val KEY_PLAYLISTS_EXPANDED = "KEY_PLAYLISTS_EXPANDED"
         private const val KEY_PLAYLISTS_DATA = "KEY_PLAYLISTS_DATA"
-        private const val CHANNEL_ID = "sonora_media_channel"
-        private const val NOTIFICATION_ID = 2001
     }
 
     private lateinit var viewPager: ViewPager2
@@ -72,39 +49,31 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnNavPlayer: ImageButton
     private lateinit var btnNavPlaylists: ImageButton
 
-    private val playlistsList = mutableListOf<Playlist>()
+    val playlistsList = mutableListOf<Playlist>()
 
     // Reproductor de audio y control de estado
-    private var mediaPlayer: MediaPlayer? = null
-    private var currentPlayingSong: Song? = null
-    private var currentPlayingPlaylist: Playlist? = null
-    private var activeOpenedPlaylist: Playlist? = null
-    private var currentPlayingIndex: Int = -1
-    private var isPlaying: Boolean = false
-    private var isUserSeeking: Boolean = false
+    var mediaPlayer: MediaPlayer? = null
+    var currentPlayingSong: Song? = null
+    var currentPlayingPlaylist: Playlist? = null
+    var activeOpenedPlaylist: Playlist? = null
+    var currentPlayingIndex: Int = -1
+    var isPlaying: Boolean = false
+    var isUserSeeking: Boolean = false
 
     // Modos de reproducción
-    private var isRepeatOne: Boolean = false
-    private var isShuffleEnabled: Boolean = false
+    var isRepeatOne: Boolean = false
+    var isShuffleEnabled: Boolean = false
 
     private val progressHandler = Handler(Looper.getMainLooper())
-    private var activePlayerViewHolder: MainPagerAdapter.PlayerViewHolder? = null
-    private var activePlaylistsViewHolder: MainPagerAdapter.PlaylistsViewHolder? = null
-    private var lastNotificationUpdateMs = 0L
 
     private val updateProgressRunnable = object : Runnable {
         override fun run() {
             val player = mediaPlayer
             if (player != null && isPlaying && !isUserSeeking) {
                 val currentPos = player.currentPosition
-                activePlayerViewHolder?.let { vh ->
+                pagerAdapter.activePlayerViewHolder?.let { vh ->
                     vh.playerSeekBar.progress = currentPos
                     vh.tvCurrentTime.text = formatDuration(currentPos.toLong())
-                }
-                val now = System.currentTimeMillis()
-                if (now - lastNotificationUpdateMs >= 1000) {
-                    lastNotificationUpdateMs = now
-                    showMediaNotification()
                 }
             }
             if (isPlaying) {
@@ -131,10 +100,10 @@ class MainActivity : AppCompatActivity() {
         instance = this
         setContentView(R.layout.activity_main)
 
-        createNotificationChannel()
+        MediaNotificationHelper.createNotificationChannel(this)
 
         viewPager = findViewById(R.id.viewPager)
-        pagerAdapter = MainPagerAdapter()
+        pagerAdapter = MainPagerAdapter(this)
         viewPager.adapter = pagerAdapter
         viewPager.offscreenPageLimit = 2
 
@@ -151,15 +120,15 @@ class MainActivity : AppCompatActivity() {
         btnNavPlaylists = findViewById(R.id.btnNavPlaylists)
 
         tabNavList.setOnClickListener {
-            viewPager.setCurrentItem(0, true)
+            setCurrentTab(0)
         }
 
         tabNavPlayer.setOnClickListener {
-            viewPager.setCurrentItem(1, true)
+            setCurrentTab(1)
         }
 
         tabNavPlaylists.setOnClickListener {
-            viewPager.setCurrentItem(2, true)
+            setCurrentTab(2)
         }
 
         loadPlaylistsFromPrefs()
@@ -176,14 +145,14 @@ class MainActivity : AppCompatActivity() {
         // Control del botón Atrás del sistema
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                val playlistsVh = activePlaylistsViewHolder
+                val playlistsVh = pagerAdapter.activePlaylistsViewHolder
                 if (viewPager.currentItem == 2 && playlistsVh?.viewPlaylistDetail?.visibility == View.VISIBLE) {
                     playlistsVh.viewPlaylistDetail.visibility = View.GONE
                     playlistsVh.viewPlaylistsMain.visibility = View.VISIBLE
                     activeOpenedPlaylist = null
                     pagerAdapter.notifyItemChanged(2)
                 } else if (viewPager.currentItem != 0) {
-                    viewPager.setCurrentItem(0, true)
+                    setCurrentTab(0)
                 } else {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
@@ -192,6 +161,22 @@ class MainActivity : AppCompatActivity() {
         })
 
         checkAndRequestAppPermissions()
+    }
+
+    fun setCurrentTab(position: Int) {
+        viewPager.setCurrentItem(position, true)
+    }
+
+    fun setViewPagerUserInputEnabled(enabled: Boolean) {
+        viewPager.isUserInputEnabled = enabled
+    }
+
+    fun postDelayedToProgressHandler(runnable: Runnable, delayMs: Long) {
+        progressHandler.postDelayed(runnable, delayMs)
+    }
+
+    fun removeCallbacksFromProgressHandler(runnable: Runnable) {
+        progressHandler.removeCallbacks(runnable)
     }
 
     private fun updateBottomNavColors(position: Int) {
@@ -208,7 +193,7 @@ class MainActivity : AppCompatActivity() {
         indicatorNavPlaylists.visibility = if (position == 2) View.VISIBLE else View.INVISIBLE
     }
 
-    private fun savePlaylistsToPrefs() {
+    fun savePlaylistsToPrefs() {
         val array = JSONArray()
         for (pl in playlistsList) {
             val obj = JSONObject()
@@ -369,7 +354,7 @@ class MainActivity : AppCompatActivity() {
         pagerAdapter.updateScanning(true)
 
         Executors.newSingleThreadExecutor().execute {
-            val songs = loadAudioFiles()
+            val songs = MusicScanner.loadAudioFiles(this)
             runOnUiThread {
                 pagerAdapter.updateSongs(songs)
                 if (songs.isNotEmpty()) {
@@ -396,7 +381,7 @@ class MainActivity : AppCompatActivity() {
                 currentPlayingIndex = songs.indexOf(lastSong)
                 pagerAdapter.notifyItemChanged(1)
 
-                activePlayerViewHolder?.let { vh ->
+                pagerAdapter.activePlayerViewHolder?.let { vh ->
                     vh.playerSeekBar.max = lastSong.duration.toInt()
                     vh.playerSeekBar.progress = lastPos
                     vh.tvCurrentTime.text = formatDuration(lastPos.toLong())
@@ -406,68 +391,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveLastPlayedSong(song: Song, positionMs: Int) {
+    fun saveLastPlayedSong(song: Song, positionMs: Int) {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit()
             .putLong(KEY_LAST_SONG_ID, song.id)
             .putInt(KEY_LAST_SONG_POS, positionMs)
             .apply()
-    }
-
-    /**
-     * Consulta el proveedor de contenidos MediaStore para obtener la lista de pistas de audio.
-     */
-    private fun loadAudioFiles(): List<Song> {
-        val songsList = mutableListOf<Song>()
-
-        val collection: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        } else {
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        }
-
-        val projection = arrayOf(
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.DURATION,
-        )
-
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
-        val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
-
-        try {
-            contentResolver.query(
-                collection,
-                projection,
-                selection,
-                null,
-                sortOrder,
-            )?.use { cursor ->
-                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-                val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-                val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(idColumn)
-                    val title = cursor.getString(titleColumn) ?: "Título desconocido"
-                    val artist = cursor.getString(artistColumn) ?: "Artista desconocido"
-                    val duration = cursor.getLong(durationColumn)
-
-                    val contentUri = ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                        id,
-                    )
-
-                    songsList.add(Song(id, title, artist, duration, contentUri))
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        return songsList
     }
 
     /**
@@ -649,7 +578,7 @@ class MainActivity : AppCompatActivity() {
         val duration = currentPlayingSong?.duration?.toInt() ?: player.duration
         val newPos = minOf(duration, player.currentPosition + 5000)
         player.seekTo(newPos)
-        activePlayerViewHolder?.let { vh ->
+        pagerAdapter.activePlayerViewHolder?.let { vh ->
             vh.playerSeekBar.progress = newPos
             vh.tvCurrentTime.text = formatDuration(newPos.toLong())
         }
@@ -664,7 +593,7 @@ class MainActivity : AppCompatActivity() {
         val player = mediaPlayer ?: return
         val newPos = maxOf(0, player.currentPosition - 5000)
         player.seekTo(newPos)
-        activePlayerViewHolder?.let { vh ->
+        pagerAdapter.activePlayerViewHolder?.let { vh ->
             vh.playerSeekBar.progress = newPos
             vh.tvCurrentTime.text = formatDuration(newPos.toLong())
         }
@@ -681,113 +610,13 @@ class MainActivity : AppCompatActivity() {
         progressHandler.removeCallbacks(updateProgressRunnable)
     }
 
-    private fun formatDuration(durationMs: Long): String {
-        val totalSeconds = durationMs / 1000
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
-    }
-
-    // --- Notificaciones multimedia y Controles fuera de la app ---
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Reproductor Sonora",
-                NotificationManager.IMPORTANCE_LOW,
-            ).apply {
-                description = "Controles de reproducción para Sonora"
-                setShowBadge(false)
-            }
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager?.createNotificationChannel(channel)
-        }
-    }
-
-    private fun showMediaNotification() {
-        val song = currentPlayingSong ?: return
-        val player = mediaPlayer
-
-        val contentIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
-        fun createActionPendingIntent(action: String, requestCode: Int): PendingIntent {
-            val intent = Intent(this, MusicControlReceiver::class.java).apply {
-                this.action = action
-            }
-            return PendingIntent.getBroadcast(
-                this,
-                requestCode,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-        }
-
-        val prevIntent = createActionPendingIntent("ACTION_PREV", 1)
-        val rewindIntent = createActionPendingIntent("ACTION_REWIND_5", 2)
-        val playPauseIntent = createActionPendingIntent("ACTION_PLAY_PAUSE", 3)
-        val forwardIntent = createActionPendingIntent("ACTION_FORWARD_5", 4)
-        val nextIntent = createActionPendingIntent("ACTION_NEXT", 5)
-
-        val currentPos = player?.currentPosition ?: 0
-        val duration = song.duration.toInt()
-
-        val pinkColor = Color.parseColor("#F7CDDA")
-        val whiteColor = Color.WHITE
-        val bgDarkColor = Color.parseColor("#0F0F12")
-
-        val remoteViews = RemoteViews(packageName, R.layout.notification_media).apply {
-            setInt(R.id.rootNotificationMedia, "setBackgroundColor", bgDarkColor)
-
-            setTextViewText(R.id.tvNotificationTitle, song.title)
-            setTextViewText(R.id.tvNotificationArtist, song.artist)
-            setTextViewText(R.id.tvNotificationCurrentTime, formatDuration(currentPos.toLong()))
-            setTextViewText(R.id.tvNotificationTotalTime, formatDuration(song.duration))
-
-            setProgressBar(R.id.pbNotificationProgress, duration, currentPos, false)
-
-            setImageViewResource(
-                R.id.btnNotificationPlayPause,
-                if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
-            )
-            setInt(R.id.btnNotificationPlayPause, "setColorFilter", bgDarkColor)
-
-            setInt(R.id.btnNotificationPrev, "setColorFilter", whiteColor)
-            setInt(R.id.btnNotificationRewind5, "setColorFilter", pinkColor)
-            setInt(R.id.btnNotificationForward5, "setColorFilter", pinkColor)
-            setInt(R.id.btnNotificationNext, "setColorFilter", whiteColor)
-
-            setOnClickPendingIntent(R.id.btnNotificationPrev, prevIntent)
-            setOnClickPendingIntent(R.id.btnNotificationRewind5, rewindIntent)
-            setOnClickPendingIntent(R.id.btnNotificationPlayPause, playPauseIntent)
-            setOnClickPendingIntent(R.id.btnNotificationForward5, forwardIntent)
-            setOnClickPendingIntent(R.id.btnNotificationNext, nextIntent)
-        }
-
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_music_note)
-            .setCustomContentView(remoteViews)
-            .setCustomBigContentView(remoteViews)
-            .setContentIntent(contentIntent)
-            .setOngoing(isPlaying)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
-
-        val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager?.notify(NOTIFICATION_ID, notification)
+    fun showMediaNotification() {
+        val currentPos = mediaPlayer?.currentPosition ?: 0
+        MediaNotificationHelper.showMediaNotification(this, currentPlayingSong, isPlaying, currentPos)
     }
 
     private fun cancelMediaNotification() {
-        val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager?.cancel(NOTIFICATION_ID)
+        MediaNotificationHelper.cancelMediaNotification(this)
     }
 
     override fun onDestroy() {
@@ -802,536 +631,5 @@ class MainActivity : AppCompatActivity() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
-    }
-
-    inner class MainPagerAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-
-        private var songs: List<Song> = emptyList()
-        private var isScanning: Boolean = false
-
-        fun getSongsList(): List<Song> = songs
-
-        fun updateScanning(scanning: Boolean) {
-            isScanning = scanning
-            notifyItemChanged(0)
-        }
-
-        fun updateSongs(newSongs: List<Song>) {
-            songs = newSongs
-            isScanning = false
-            notifyItemChanged(0)
-            notifyItemChanged(2)
-        }
-
-        override fun getItemCount(): Int = 3
-
-        override fun getItemViewType(position: Int): Int = position
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-            val inflater = LayoutInflater.from(parent.context)
-            return when (viewType) {
-                0 -> {
-                    val view = inflater.inflate(R.layout.page_songs, parent, false)
-                    SongsViewHolder(view)
-                }
-                1 -> {
-                    val view = inflater.inflate(R.layout.page_player, parent, false)
-                    PlayerViewHolder(view)
-                }
-                else -> {
-                    val view = inflater.inflate(R.layout.page_playlists, parent, false)
-                    PlaylistsViewHolder(view)
-                }
-            }
-        }
-
-        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            if (holder is SongsViewHolder) {
-                holder.progressBar.visibility = if (isScanning) View.VISIBLE else View.GONE
-
-                val listAdapter = object : ArrayAdapter<Song>(this@MainActivity, R.layout.item_song, R.id.tvSongTitle, songs) {
-                    override fun getView(pos: Int, convertView: View?, parent: ViewGroup): View {
-                        val rowView = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_song, parent, false)
-                        val song = getItem(pos)
-
-                        val textTitle = rowView.findViewById<TextView>(R.id.tvSongTitle)
-                        val textDetails = rowView.findViewById<TextView>(R.id.tvSongArtistAndDuration)
-                        val btnOptions = rowView.findViewById<ImageButton>(R.id.btnSongOptions)
-
-                        textTitle.text = song?.title
-                        val durationFormatted = song?.let { formatDuration(it.duration) } ?: "00:00"
-                        textDetails.text = "${song?.artist} • $durationFormatted"
-
-                        btnOptions?.setOnClickListener {
-                            song?.let { s -> showSongOptionsMenuDialog(s) }
-                        }
-
-                        rowView.setOnClickListener {
-                            song?.let { s -> playSong(s, 0, null) }
-                        }
-
-                        val isSelected = song != null && currentPlayingSong != null && song.id == currentPlayingSong?.id
-                        val pinkColor = Color.parseColor("#F7CDDA")
-
-                        if (isSelected) {
-                            rowView.background = ContextCompat.getDrawable(context, R.drawable.bg_song_item_selected)
-                            textTitle.setTextColor(pinkColor)
-                            textDetails.setTextColor(pinkColor)
-                            btnOptions?.setColorFilter(pinkColor)
-                        } else {
-                            rowView.background = null
-                            textTitle.setTextColor(Color.WHITE)
-                            textDetails.setTextColor(Color.parseColor("#A0A0B0"))
-                            btnOptions?.setColorFilter(Color.parseColor("#A0A0B0"))
-                        }
-
-                        return rowView
-                    }
-                }
-
-                holder.lvSongs.adapter = listAdapter
-                holder.lvSongs.setOnItemClickListener { _, _, songPos, _ ->
-                    val clickedSong = songs[songPos]
-                    playSong(clickedSong, 0, null)
-                }
-            } else if (holder is PlayerViewHolder) {
-                activePlayerViewHolder = holder
-                val song = currentPlayingSong
-                val player = mediaPlayer
-
-                if (song != null) {
-                    holder.tvPlayerTitle.text = song.title
-                    holder.tvPlayerArtist.text = song.artist
-                    holder.tvTotalTime.text = formatDuration(song.duration)
-                    holder.playerSeekBar.max = song.duration.toInt()
-
-                    val currentPos = player?.currentPosition ?: 0
-                    holder.playerSeekBar.progress = currentPos
-                    holder.tvCurrentTime.text = formatDuration(currentPos.toLong())
-                } else {
-                    holder.tvPlayerTitle.text = "Sin canción seleccionada"
-                    holder.tvPlayerArtist.text = "Selecciona una canción en la lista"
-                    holder.tvCurrentTime.text = "00:00"
-                    holder.tvTotalTime.text = "00:00"
-                    holder.playerSeekBar.max = 100
-                    holder.playerSeekBar.progress = 0
-                }
-
-                holder.btnPlayPause.setImageResource(
-                    if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
-                )
-
-                updateRepeatButtonUI(holder.btnRepeat)
-                updateShuffleButtonUI(holder.btnShuffle)
-
-                holder.btnRepeat.setOnClickListener {
-                    isRepeatOne = !isRepeatOne
-                    updateRepeatButtonUI(holder.btnRepeat)
-                    val msg = if (isRepeatOne) "Modo: En bucle la misma canción" else "Modo: Siguiente canción automáticamente"
-                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
-                }
-
-                holder.btnShuffle.setOnClickListener {
-                    isShuffleEnabled = !isShuffleEnabled
-                    updateShuffleButtonUI(holder.btnShuffle)
-                    val msg = if (isShuffleEnabled) "Modo: Reproducción al azar" else "Modo: Reproducción lineal"
-                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
-                }
-
-                holder.btnPlayPause.setOnClickListener {
-                    togglePlayPause()
-                }
-
-                holder.btnPrevious.setOnClickListener {
-                    playPreviousSong()
-                }
-
-                holder.btnNext.setOnClickListener {
-                    playNextSong()
-                }
-
-                setupForwardTouchListener(holder.btnForward5)
-                setupRewindTouchListener(holder.btnRewind5)
-
-                holder.btnBackToList.setOnClickListener {
-                    viewPager.setCurrentItem(0, true)
-                }
-
-                // Control del SeekBar para arrastrar y adelantar/retroceder la canción
-                holder.playerSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                        if (fromUser) {
-                            holder.tvCurrentTime.text = formatDuration(progress.toLong())
-                        }
-                    }
-
-                    override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                        isUserSeeking = true
-                        viewPager.isUserInputEnabled = false
-                    }
-
-                    override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                        val targetPosition = seekBar?.progress ?: 0
-                        mediaPlayer?.seekTo(targetPosition)
-                        holder.tvCurrentTime.text = formatDuration(targetPosition.toLong())
-                        isUserSeeking = false
-                        viewPager.isUserInputEnabled = true
-                        currentPlayingSong?.let { saveLastPlayedSong(it, targetPosition) }
-                    }
-                })
-            } else if (holder is PlaylistsViewHolder) {
-                activePlaylistsViewHolder = holder
-                val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                var isExpanded = prefs.getBoolean(KEY_PLAYLISTS_EXPANDED, true)
-
-                fun updateExpandState(expanded: Boolean) {
-                    holder.containerPlaylists.visibility = if (expanded) View.VISIBLE else View.GONE
-                    holder.ivExpandArrow.rotation = if (expanded) 0f else -90f
-                }
-
-                updateExpandState(isExpanded)
-
-                holder.btnTogglePlaylists.setOnClickListener {
-                    isExpanded = !isExpanded
-                    updateExpandState(isExpanded)
-                    prefs.edit().putBoolean(KEY_PLAYLISTS_EXPANDED, isExpanded).apply()
-                }
-
-                holder.btnNewPlaylist.setOnClickListener {
-                    showCreatePlaylistDialog()
-                }
-
-                holder.btnBackToPlaylistsMain.setOnClickListener {
-                    activeOpenedPlaylist = null
-                    holder.viewPlaylistDetail.visibility = View.GONE
-                    holder.viewPlaylistsMain.visibility = View.VISIBLE
-                    notifyItemChanged(2)
-                }
-
-                // Restaurar vista detalle de lista si ya estaba abierta
-                if (activeOpenedPlaylist != null) {
-                    val openedPl = playlistsList.find { it.name == activeOpenedPlaylist?.name }
-                    if (openedPl != null) {
-                        holder.viewPlaylistsMain.visibility = View.GONE
-                        holder.viewPlaylistDetail.visibility = View.VISIBLE
-                        holder.tvSelectedPlaylistTitle.text = openedPl.name
-                        updatePlaylistSongsDetailList(holder, openedPl)
-                    } else {
-                        activeOpenedPlaylist = null
-                        holder.viewPlaylistDetail.visibility = View.GONE
-                        holder.viewPlaylistsMain.visibility = View.VISIBLE
-                    }
-                } else {
-                    holder.viewPlaylistDetail.visibility = View.GONE
-                    holder.viewPlaylistsMain.visibility = View.VISIBLE
-                }
-
-                if (playlistsList.isEmpty()) {
-                    holder.tvEmptyPlaylists.visibility = View.VISIBLE
-                    holder.lvPlaylists.visibility = View.GONE
-                } else {
-                    holder.tvEmptyPlaylists.visibility = View.GONE
-                    holder.lvPlaylists.visibility = View.VISIBLE
-
-                    val playlistAdapter = object : ArrayAdapter<Playlist>(this@MainActivity, R.layout.item_playlist, R.id.tvPlaylistName, playlistsList) {
-                        override fun getView(pos: Int, convertView: View?, parent: ViewGroup): View {
-                            val rowView = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_playlist, parent, false)
-                            val playlist = getItem(pos)
-
-                            val ivIcon = rowView.findViewById<ImageView>(R.id.ivPlaylistIcon)
-                            val tvName = rowView.findViewById<TextView>(R.id.tvPlaylistName)
-                            val tvCount = rowView.findViewById<TextView>(R.id.tvPlaylistCount)
-                            val btnDelete = rowView.findViewById<ImageButton>(R.id.btnDeletePlaylist)
-
-                            tvName.text = playlist?.name
-                            val count = playlist?.songIds?.size ?: 0
-                            tvCount.text = if (count == 1) "1 canción" else "$count canciones"
-
-                            val pinkColor = Color.parseColor("#F7CDDA")
-                            val isPlaylistPlaying = playlist != null && currentPlayingPlaylist != null && playlist.name == currentPlayingPlaylist?.name
-
-                            if (isPlaylistPlaying) {
-                                tvName.setTextColor(pinkColor)
-                                ivIcon?.setColorFilter(pinkColor)
-                            } else {
-                                tvName.setTextColor(Color.WHITE)
-                                ivIcon?.setColorFilter(Color.WHITE)
-                            }
-
-                            rowView.setOnClickListener {
-                                playlist?.let { pl ->
-                                    val isAlreadyPlayingThisPlaylist = (currentPlayingPlaylist?.name == pl.name)
-                                    activeOpenedPlaylist = pl
-
-                                    if (!isAlreadyPlayingThisPlaylist) {
-                                        currentPlayingPlaylist = pl
-                                        val allSongs = getSongsList()
-                                        val playlistSongs = allSongs.filter { pl.songIds.contains(it.id) }
-                                        if (playlistSongs.isNotEmpty()) {
-                                            playSong(playlistSongs[0], 0, pl)
-                                        }
-                                    }
-
-                                    holder.viewPlaylistsMain.visibility = View.GONE
-                                    holder.viewPlaylistDetail.visibility = View.VISIBLE
-                                    holder.tvSelectedPlaylistTitle.text = pl.name
-
-                                    updatePlaylistSongsDetailList(holder, pl)
-                                    notifyDataSetChanged()
-                                }
-                            }
-
-                            btnDelete.setOnClickListener {
-                                playlist?.let { pl ->
-                                    if (currentPlayingPlaylist == pl) {
-                                        currentPlayingPlaylist = null
-                                    }
-                                    if (activeOpenedPlaylist == pl) {
-                                        activeOpenedPlaylist = null
-                                        holder.viewPlaylistDetail.visibility = View.GONE
-                                        holder.viewPlaylistsMain.visibility = View.VISIBLE
-                                    }
-                                    playlistsList.remove(pl)
-                                    savePlaylistsToPrefs()
-                                    notifyDataSetChanged()
-                                    if (playlistsList.isEmpty()) {
-                                        holder.tvEmptyPlaylists.visibility = View.VISIBLE
-                                        holder.lvPlaylists.visibility = View.GONE
-                                    }
-                                    Toast.makeText(this@MainActivity, "Lista '${pl.name}' eliminada", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-
-                            return rowView
-                        }
-                    }
-
-                    holder.lvPlaylists.adapter = playlistAdapter
-                    holder.lvPlaylists.setOnItemClickListener { _, _, plPos, _ ->
-                        val clickedPlaylist = playlistsList[plPos]
-                        val isAlreadyPlayingThisPlaylist = (currentPlayingPlaylist?.name == clickedPlaylist.name)
-
-                        activeOpenedPlaylist = clickedPlaylist
-
-                        if (!isAlreadyPlayingThisPlaylist) {
-                            currentPlayingPlaylist = clickedPlaylist
-                            val allSongs = getSongsList()
-                            val playlistSongs = allSongs.filter { clickedPlaylist.songIds.contains(it.id) }
-                            if (playlistSongs.isNotEmpty()) {
-                                playSong(playlistSongs[0], 0, clickedPlaylist)
-                            }
-                        }
-
-                        holder.viewPlaylistsMain.visibility = View.GONE
-                        holder.viewPlaylistDetail.visibility = View.VISIBLE
-                        holder.tvSelectedPlaylistTitle.text = clickedPlaylist.name
-
-                        updatePlaylistSongsDetailList(holder, clickedPlaylist)
-                        playlistAdapter.notifyDataSetChanged()
-                    }
-                }
-            }
-        }
-
-        private fun updatePlaylistSongsDetailList(holder: PlaylistsViewHolder, playlist: Playlist) {
-            val allSongs = getSongsList()
-            val playlistSongs = allSongs.filter { playlist.songIds.contains(it.id) }
-
-            if (playlistSongs.isEmpty()) {
-                holder.tvEmptyPlaylistDetail.visibility = View.VISIBLE
-                holder.lvPlaylistSongsDetail.visibility = View.GONE
-            } else {
-                holder.tvEmptyPlaylistDetail.visibility = View.GONE
-                holder.lvPlaylistSongsDetail.visibility = View.VISIBLE
-
-                val detailAdapter = object : ArrayAdapter<Song>(this@MainActivity, R.layout.item_song, R.id.tvSongTitle, playlistSongs) {
-                    override fun getView(pos: Int, convertView: View?, parent: ViewGroup): View {
-                        val rowView = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_song, parent, false)
-                        val song = getItem(pos)
-
-                        val textTitle = rowView.findViewById<TextView>(R.id.tvSongTitle)
-                        val textDetails = rowView.findViewById<TextView>(R.id.tvSongArtistAndDuration)
-                        val btnOptions = rowView.findViewById<ImageButton>(R.id.btnSongOptions)
-
-                        textTitle.text = song?.title
-                        val durationFormatted = song?.let { formatDuration(it.duration) } ?: "00:00"
-                        textDetails.text = "${song?.artist} • $durationFormatted"
-
-                        btnOptions?.setOnClickListener {
-                            song?.let { s -> showSongOptionsMenuDialog(s) }
-                        }
-
-                        rowView.setOnClickListener {
-                            song?.let { s ->
-                                playSong(s, 0, playlist)
-                                notifyDataSetChanged()
-                            }
-                        }
-
-                        val isSelected = song != null && currentPlayingSong != null && song.id == currentPlayingSong?.id
-                        val pinkColor = Color.parseColor("#F7CDDA")
-
-                        if (isSelected) {
-                            rowView.background = ContextCompat.getDrawable(context, R.drawable.bg_song_item_selected)
-                            textTitle.setTextColor(pinkColor)
-                            textDetails.setTextColor(pinkColor)
-                            btnOptions?.setColorFilter(pinkColor)
-                        } else {
-                            rowView.background = null
-                            textTitle.setTextColor(Color.WHITE)
-                            textDetails.setTextColor(Color.parseColor("#A0A0B0"))
-                            btnOptions?.setColorFilter(Color.parseColor("#A0A0B0"))
-                        }
-
-                        return rowView
-                    }
-                }
-
-                holder.lvPlaylistSongsDetail.adapter = detailAdapter
-                holder.lvPlaylistSongsDetail.setOnItemClickListener { _, _, songPos, _ ->
-                    val clickedSong = playlistSongs[songPos]
-                    playSong(clickedSong, 0, playlist)
-                    detailAdapter.notifyDataSetChanged()
-                }
-            }
-        }
-
-        private fun updateRepeatButtonUI(btn: ImageButton) {
-            val activeColor = Color.parseColor("#F7CDDA")
-            val inactiveColor = Color.parseColor("#555566")
-
-            if (isRepeatOne) {
-                btn.setImageResource(R.drawable.ic_repeat_one)
-                btn.setColorFilter(activeColor)
-            } else {
-                btn.setImageResource(R.drawable.ic_repeat)
-                btn.setColorFilter(inactiveColor)
-            }
-        }
-
-        private fun updateShuffleButtonUI(btn: ImageButton) {
-            val activeColor = Color.parseColor("#F7CDDA")
-            val inactiveColor = Color.parseColor("#555566")
-
-            btn.setImageResource(R.drawable.ic_shuffle)
-            if (isShuffleEnabled) {
-                btn.setColorFilter(activeColor)
-            } else {
-                btn.setColorFilter(inactiveColor)
-            }
-        }
-
-        @SuppressLint("ClickableViewAccessibility")
-        private fun setupForwardTouchListener(btn: ImageButton) {
-            btn.setOnTouchListener(object : View.OnTouchListener {
-                private var isLongPress = false
-                private var toast2x: Toast? = null
-                private val longPressRunnable = Runnable {
-                    isLongPress = true
-                    setPlaybackSpeed(2.0f)
-                    toast2x = Toast.makeText(this@MainActivity, "Velocidad 2x", Toast.LENGTH_SHORT)
-                    toast2x?.show()
-                }
-
-                override fun onTouch(v: View, event: MotionEvent): Boolean {
-                    when (event.action) {
-                        MotionEvent.ACTION_DOWN -> {
-                            isLongPress = false
-                            progressHandler.postDelayed(longPressRunnable, 400)
-                            return true
-                        }
-                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                            progressHandler.removeCallbacks(longPressRunnable)
-                            if (isLongPress) {
-                                setPlaybackSpeed(1.0f)
-                                toast2x?.cancel()
-                            } else {
-                                forward5Seconds()
-                                v.performClick()
-                            }
-                            return true
-                        }
-                    }
-                    return false
-                }
-            })
-        }
-
-        @SuppressLint("ClickableViewAccessibility")
-        private fun setupRewindTouchListener(btn: ImageButton) {
-            btn.setOnTouchListener(object : View.OnTouchListener {
-                private var isLongPress = false
-                private val rewindLoopRunnable = object : Runnable {
-                    override fun run() {
-                        if (isLongPress) {
-                            rewind5Seconds()
-                            progressHandler.postDelayed(this, 200)
-                        }
-                    }
-                }
-                private val longPressRunnable = Runnable {
-                    isLongPress = true
-                    progressHandler.post(rewindLoopRunnable)
-                    Toast.makeText(this@MainActivity, "Retroceso rápido", Toast.LENGTH_SHORT).show()
-                }
-
-                override fun onTouch(v: View, event: MotionEvent): Boolean {
-                    when (event.action) {
-                        MotionEvent.ACTION_DOWN -> {
-                            isLongPress = false
-                            progressHandler.postDelayed(longPressRunnable, 400)
-                            return true
-                        }
-                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                            progressHandler.removeCallbacks(longPressRunnable)
-                            progressHandler.removeCallbacks(rewindLoopRunnable)
-                            if (!isLongPress) {
-                                rewind5Seconds()
-                                v.performClick()
-                            }
-                            return true
-                        }
-                    }
-                    return false
-                }
-            })
-        }
-
-        inner class SongsViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val progressBar: ProgressBar = view.findViewById(R.id.progressBar)
-            val lvSongs: ListView = view.findViewById(R.id.lvSongs)
-        }
-
-        inner class PlayerViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val btnBackToList: ImageButton = view.findViewById(R.id.btnBackToList)
-            val tvPlayerTitle: TextView = view.findViewById(R.id.tvPlayerTitle)
-            val tvPlayerArtist: TextView = view.findViewById(R.id.tvPlayerArtist)
-            val btnRepeat: ImageButton = view.findViewById(R.id.btnRepeat)
-            val btnShuffle: ImageButton = view.findViewById(R.id.btnShuffle)
-            val tvCurrentTime: TextView = view.findViewById(R.id.tvCurrentTime)
-            val tvTotalTime: TextView = view.findViewById(R.id.tvTotalTime)
-            val playerSeekBar: SeekBar = view.findViewById(R.id.playerSeekBar)
-            val btnPrevious: ImageButton = view.findViewById(R.id.btnPrevious)
-            val btnRewind5: ImageButton = view.findViewById(R.id.btnRewind5)
-            val btnPlayPause: FloatingActionButton = view.findViewById(R.id.btnPlayPause)
-            val btnForward5: ImageButton = view.findViewById(R.id.btnForward5)
-            val btnNext: ImageButton = view.findViewById(R.id.btnNext)
-        }
-
-        inner class PlaylistsViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val viewPlaylistsMain: View = view.findViewById(R.id.viewPlaylistsMain)
-            val btnNewPlaylist: View = view.findViewById(R.id.btnNewPlaylist)
-            val btnTogglePlaylists: View = view.findViewById(R.id.btnTogglePlaylists)
-            val ivExpandArrow: ImageView = view.findViewById(R.id.ivExpandArrow)
-            val containerPlaylists: View = view.findViewById(R.id.containerPlaylists)
-            val tvEmptyPlaylists: TextView = view.findViewById(R.id.tvEmptyPlaylists)
-            val lvPlaylists: ListView = view.findViewById(R.id.lvPlaylists)
-
-            val viewPlaylistDetail: View = view.findViewById(R.id.viewPlaylistDetail)
-            val btnBackToPlaylistsMain: ImageButton = view.findViewById(R.id.btnBackToPlaylistsMain)
-            val tvSelectedPlaylistTitle: TextView = view.findViewById(R.id.tvSelectedPlaylistTitle)
-            val tvEmptyPlaylistDetail: TextView = view.findViewById(R.id.tvEmptyPlaylistDetail)
-            val lvPlaylistSongsDetail: ListView = view.findViewById(R.id.lvPlaylistSongsDetail)
-        }
     }
 }

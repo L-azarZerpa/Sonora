@@ -9,8 +9,3 @@ data class Song(
     val duration: Long,
     val uri: Uri
 )
-
-data class Playlist(
-    val name: String,
-    val songIds: MutableList<Long> = mutableListOf()
-)
